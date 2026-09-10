@@ -1,5 +1,3 @@
-// Default task list — editable in Supabase dashboard (tasks table)
-// Each task: name, emoji, productive flag, color, sort order
 export const DEFAULT_TASKS = [
 	{ id: 'read', name: 'Reading', emoji: '📚', productive: true, color: '#7C3AED', sort_order: 1 },
 	{ id: 'math', name: 'Math', emoji: '🧮', productive: true, color: '#2563EB', sort_order: 2 },
@@ -12,8 +10,3 @@ export const DEFAULT_TASKS = [
 	{ id: 'games', name: 'Games', emoji: '🎮', productive: false, color: '#9CA3AF', sort_order: 9 },
 	{ id: 'social', name: 'Social / Chat', emoji: '💬', productive: false, color: '#D97706', sort_order: 10 },
 ];
-
-export function getTaskColor(taskId: string, tasks: any[]): string {
-	const t = tasks.find((t) => t.id === taskId);
-	return t?.color ?? '#6B7280';
-}
