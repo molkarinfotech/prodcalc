@@ -5,7 +5,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter(),
+		adapter: adapter({ runtime: { nodejs: { pollution: 'strict' } } }),
 		env: {
 			public: ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
 		}
