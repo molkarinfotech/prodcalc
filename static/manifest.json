@@ -1,0 +1,22 @@
+{
+	"name": "Family Time Log",
+	"short_name": "TimeLog",
+	"description": "Track daily routine tasks for kids and family — productive vs non-productive time",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#FFFFFF",
+	"theme_color": "#7C3AED",
+	"orientation": "portrait",
+	"icons": [
+		{
+			"src": "/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		}
+	]
+}
