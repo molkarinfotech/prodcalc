@@ -3,17 +3,18 @@
   import { DEFAULT_TASKS } from '$lib/tasks.js';
   import { FAMILY_MEMBERS } from '$lib/members.js';
 
-  let tasks = DEFAULT_TASKS;
-  let entries = [];
-  let selectedMember = 'parent';
-  let today = new Date().toISOString().slice(0, 10);
-  let isLoading = true;
-  let connected = false;
+  // --- Reactive state (Svelte 5 runes) ---
+  let tasks = $state(DEFAULT_TASKS);
+  let entries = $state([]);
+  let selectedMember = $state('parent');
+  let today = $state(new Date().toISOString().slice(0, 10));
+  let isLoading = $state(true);
+  let connected = $state(false);
 
   // Timer
-  let activeTimer = null;
-  let timerSeconds = 0;
-  let timerInterval = null;
+  let activeTimer = $state(null);
+  let timerSeconds = $state(0);
+  let timerInterval = $state(null);
 
   function formatTime(secs) {
     const m = Math.floor(secs / 60);
@@ -56,18 +57,24 @@
     timerSeconds = 0;
   }
 
-  function refresh() {
+  async function refresh() {
     isLoading = true;
-    Promise.all([getTasks(), getEntries(FAMILY_MEMBERS.find(m => m.id === selectedMember)?.name || 'Someone', today)])
-      .then(([t, e]) => {
-        tasks = t;
-        entries = e;
-        connected = !!supabase;
-      })
-      .finally(() => { isLoading = false; });
+    try {
+      const [t, e] = await Promise.all([
+        getTasks(),
+        getEntries(FAMILY_MEMBERS.find(m => m.id === selectedMember)?.name || 'Someone', today)
+      ]);
+      tasks = t;
+      entries = e;
+      connected = !!supabase;
+    } catch {
+      tasks = DEFAULT_TASKS;
+      entries = [];
+    }
+    isLoading = false;
   }
 
-  function handleQuickSave() {
+  async function handleQuickSave() {
     if (!quickTask) return;
     const minutes = parseInt(quickMinutes) || 15;
     const entry = {
@@ -80,31 +87,32 @@
       logged_at: new Date().toISOString(),
       note: quickNote || null,
     };
-    logEntry(entry).then(() => {
+    try {
+      await logEntry(entry);
       quickTask = '';
       quickMinutes = 15;
       quickNote = '';
       showQuickEntry = false;
-      refresh();
-    }).catch(() => {});
+      await refresh();
+    } catch {}
   }
 
-  let showQuickEntry = false;
-  let quickTask = '';
-  let quickTaskEmoji = '';
-  let quickMinutes = 15;
-  let quickProductive = true;
-  let quickNote = '';
+  let showQuickEntry = $state(false);
+  let quickTask = $state('');
+  let quickTaskEmoji = $state('');
+  let quickMinutes = $state(15);
+  let quickProductive = $state(true);
+  let quickNote = $state('');
 
   function selectQuickTask(task) {
     quickTask = task.name;
     quickTaskEmoji = task.emoji;
   }
 
-  // Derived
-  const totalMinutes = entries.reduce((s, e) => s + (e.minutes || 0), 0);
-  const productiveMinutes = entries.filter(e => e.productive).reduce((s, e) => s + (e.minutes || 0), 0);
-  const nonProductiveMinutes = entries.filter(e => !e.productive).reduce((s, e) => s + (e.minutes || 0), 0);
+  // Derived values
+  const totalMinutes = $derived(entries.reduce((s, e) => s + (e.minutes || 0), 0));
+  const productiveMinutes = $derived(entries.filter(e => e.productive).reduce((s, e) => s + (e.minutes || 0), 0));
+  const nonProductiveMinutes = $derived(entries.filter(e => !e.productive).reduce((s, e) => s + (e.minutes || 0), 0));
 
   function formatClock(minutes) {
     const h = Math.floor(minutes / 60);
@@ -144,7 +152,7 @@
         {/each}
       </select>
       <h1 class="title">⏱ Time Log</h1>
-      <button class="icon-btn" on:click={() => showQuickEntry = !showQuickEntry}>➕</button>
+      <button class="icon-btn" onclick={() => showQuickEntry = !showQuickEntry}>➕</button>
     </div>
     {#if connected}
       <div class="connected-badge">💾 Connected to Supabase</div>
@@ -154,7 +162,7 @@
 
     <div class="week-nav">
       {#each weekDays() as d}
-        <button class="day-btn" class:active={d === today} on:click={() => setDate(d)}>
+        <button class="day-btn" class:active={d === today} onclick={() => setDate(d)}>
           <span class="day-name">{new Date(d + 'T00:00:00').toLocaleDateString('en', { weekday: 'short' })}</span>
           <span class="day-date">{new Date(d + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>
         </button>
@@ -176,7 +184,7 @@
               class="task-chip"
               class:running={activeTimer?.taskId === task.id}
               style="background: {task.color}"
-              on:click={() => activeTimer?.taskId === task.id ? stopTimer() : startTimer(task.id, task.name, task.emoji, task.productive, task.color)}
+              onclick={() => activeTimer?.taskId === task.id ? stopTimer() : startTimer(task.id, task.name, task.emoji, task.productive, task.color)}
             >
               <span class="task-emoji">{task.emoji}</span>
               <span class="task-name">{task.name}</span>
@@ -198,8 +206,8 @@
               {activeTimer.taskName}
               <span class="prod-tag">{activeTimer.productive ? '✅ Productive' : '⏸ Screen time'}</span>
             </div>
-            <button class="stop-btn" on:click={() => stopTimer(true)}>⏹ Stop & Save</button>
-            <button class="discard-btn" on:click={() => stopTimer(false)}>🗑 Discard</button>
+            <button class="stop-btn" onclick={() => stopTimer(true)}>⏹ Stop & Save</button>
+            <button class="discard-btn" onclick={() => stopTimer(false)}>🗑 Discard</button>
           </div>
         {:else}
           <div class="timer-idle card">
@@ -243,7 +251,7 @@
                 {#if entry.note}
                   <span class="entry-note">{entry.note}</span>
                 {/if}
-                <button class="del-btn" on:click={() => deleteEntry(entry.id)} title="Delete">✕</button>
+                <button class="del-btn" onclick={() => deleteEntry(entry.id)} title="Delete">✕</button>
               </div>
             {/each}
           {/if}
@@ -254,8 +262,8 @@
 </div>
 
 {#if showQuickEntry}
-  <div class="modal-backdrop" on:click={() => showQuickEntry = false}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-backdrop" onclick={() => showQuickEntry = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h2 class="modal-title">➕ Log Time</h2>
       <div class="field">
         <label>Who?</label>
@@ -267,7 +275,7 @@
       </div>
       <div class="field">
         <label>Task</label>
-        <select bind:value={quickTask} on:change={(e) => selectQuickTask(tasks.find(t => t.name === e.target.value))}>
+        <select bind:value={quickTask} onchange={(e) => selectQuickTask(tasks.find(t => t.name === e.target.value))}>
           <option value="">— pick a task —</option>
           {#each tasks as t}
             <option value={t.name}>{t.emoji} {t.name}</option>
@@ -282,8 +290,8 @@
         <div class="field">
           <label>Type</label>
           <div class="toggle-row">
-            <button class="toggle-btn" class:active={quickProductive} on:click={() => quickProductive = true}>✅ Productive</button>
-            <button class="toggle-btn" class:active={!quickProductive} on:click={() => quickProductive = false}>⏸ Leisure</button>
+            <button class="toggle-btn" class:active={quickProductive} onclick={() => quickProductive = true}>✅ Productive</button>
+            <button class="toggle-btn" class:active={!quickProductive} onclick={() => quickProductive = false}>⏸ Leisure</button>
           </div>
         </div>
       </div>
@@ -292,8 +300,8 @@
         <input type="text" bind:value={quickNote} placeholder="e.g. chapter 3" />
       </div>
       <div class="modal-actions">
-        <button class="btn-secondary" on:click={() => showQuickEntry = false}>Cancel</button>
-        <button class="btn-primary" on:click={handleQuickSave}>Log {quickMinutes} min</button>
+        <button class="btn-secondary" onclick={() => showQuickEntry = false}>Cancel</button>
+        <button class="btn-primary" onclick={handleQuickSave}>Log {quickMinutes} min</button>
       </div>
     </div>
   </div>
@@ -309,9 +317,7 @@
     min-height: 100vh;
   }
 
-  .header {
-    margin-bottom: 20px;
-  }
+  .header { margin-bottom: 20px; }
 
   .header-top {
     display: flex;
@@ -396,20 +402,12 @@
     transition: all 0.15s;
   }
 
-  .day-btn.active {
-    background: #7C3AED;
-    border-color: #7C3AED;
-    color: white;
-  }
+  .day-btn.active { background: #7C3AED; border-color: #7C3AED; color: white; }
 
   .day-name { font-size: 0.7rem; opacity: 0.7; display: block; }
   .day-date { font-size: 0.95rem; font-weight: 700; display: block; }
 
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   .panel-title {
     font-size: 0.85rem;
@@ -429,11 +427,7 @@
     border: 1px solid #f3f4f6;
   }
 
-  .tasks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+  .tasks-list { display: flex; flex-direction: column; gap: 8px; }
 
   .task-chip {
     display: flex;
@@ -454,7 +448,6 @@
 
   .task-chip:active { transform: scale(0.97); }
   .task-chip.running { box-shadow: 0 0 0 4px rgba(255,255,255,0.6), 0 6px 20px rgba(0,0,0,0.2); }
-
   .task-emoji { font-size: 1.4rem; }
   .task-name { flex: 1; }
   .task-badge { font-size: 1rem; opacity: 0.8; }
@@ -477,19 +470,8 @@
     background: #f0fdf4;
   }
 
-  .timer-big {
-    font-size: 3rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: #1f2937;
-    margin-bottom: 8px;
-  }
-
-  .timer-big.idle {
-    font-size: 2rem;
-    color: #9ca3af;
-    margin: 8px 0;
-  }
+  .timer-big { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #1f2937; margin-bottom: 8px; }
+  .timer-big.idle { font-size: 2rem; color: #9ca3af; margin: 8px 0; }
 
   .timer-task {
     display: flex;
@@ -500,68 +482,21 @@
     margin-bottom: 16px;
   }
 
-  .prod-tag {
-    margin-left: auto;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: #fff;
-  }
+  .prod-tag { margin-left: auto; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #fff; }
 
-  .stop-btn {
-    background: #EF4444;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.95rem;
-    width: 100%;
-  }
+  .stop-btn { background: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 14px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 0.95rem; width: 100%; }
+  .discard-btn { background: transparent; color: #6b7280; border: 2px solid #e5e7eb; padding: 8px; border-radius: 12px; cursor: pointer; font-family: inherit; margin-top: 8px; font-size: 0.85rem; width: 100%; }
 
-  .discard-btn {
-    background: transparent;
-    color: #6b7280;
-    border: 2px solid #e5e7eb;
-    padding: 8px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-family: inherit;
-    margin-top: 8px;
-    font-size: 0.85rem;
-    width: 100%;
-  }
+  .summary-cards { display: flex; gap: 8px; margin-bottom: 14px; }
 
-  .summary-cards {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .summary-card {
-    flex: 1;
-    padding: 12px;
-    border-radius: 16px;
-    background: #f9fafb;
-    text-align: center;
-  }
-
+  .summary-card { flex: 1; padding: 12px; border-radius: 16px; background: #f9fafb; text-align: center; }
   .summary-card.good { background: #f0fdf4; }
   .summary-card.neutral { background: #fef3c7; }
   .summary-card.total { background: #ede9fe; }
 
   .sum-emoji { font-size: 1.3rem; }
   .sum-label { font-size: 0.7rem; text-transform: uppercase; color: #6b7280; font-weight: 600; display: block; }
-  .sum-value {
-    font-size: 1.4rem;
-    font-weight: 800;
-    display: block;
-    font-variant-numeric: tabular-nums;
-    margin: 4px 0;
-  }
+  .sum-value { font-size: 1.4rem; font-weight: 800; display: block; font-variant-numeric: tabular-nums; margin: 4px 0; }
   .sum-sub { font-size: 0.65rem; color: #6b7280; }
 
   .entries-list { margin-top: 4px; }
@@ -581,92 +516,29 @@
   .entry-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
   .entry-min { font-weight: 700; color: #7C3AED; font-variant-numeric: tabular-nums; }
   .entry-note { font-size: 0.75rem; color: #6b7280; margin-left: 4px; }
-  .del-btn {
-    background: none;
-    border: none;
-    color: #9ca3af;
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 2px 6px;
-  }
+  .del-btn { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 0.9rem; padding: 2px 6px; }
 
-  .no-entries {
-    color: #9ca3af;
-    font-size: 0.85rem;
-    padding: 12px 0;
-    text-align: center;
-  }
-
+  .no-entries { color: #9ca3af; font-size: 0.85rem; padding: 12px 0; text-align: center; }
   .loading { text-align: center; padding: 40px; color: #9ca3af; }
   .empty { text-align: center; padding: 40px; color: #6b7280; }
 
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 100;
-  }
-
-  .modal {
-    background: #fff;
-    border-radius: 24px;
-    padding: 20px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  }
-
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+  .modal { background: #fff; border-radius: 24px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
   .modal-title { font-size: 1.2rem; margin: 0 0 16px; }
 
   .field { margin-bottom: 12px; }
   .field label { display: block; font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
-  .field select, .field input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-family: inherit;
-    background: #fff;
-  }
+  .field select, .field input { width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-family: inherit; background: #fff; }
 
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
   .toggle-row { display: flex; gap: 6px; }
-  .toggle-btn {
-    flex: 1;
-    padding: 8px;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    background: #fff;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 600;
-  }
-  .toggle-btn.active {
-    background: #7C3AED;
-    border-color: #7C3AED;
-    color: white;
-  }
+  .toggle-btn { flex: 1; padding: 8px; border: 2px solid #e5e7eb; border-radius: 12px; background: #fff; cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 600; }
+  .toggle-btn.active { background: #7C3AED; border-color: #7C3AED; color: white; }
 
   .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
-  .btn-primary, .btn-secondary {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 1rem;
-  }
-
+  .btn-primary, .btn-secondary { flex: 1; padding: 12px; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 1rem; }
   .btn-primary { background: #7C3AED; color: white; }
   .btn-secondary { background: #f3f4f6; color: #374151; }
 
