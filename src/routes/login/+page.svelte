@@ -49,17 +49,17 @@
     <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       {#if mode === 'signup'}
         <div class="field">
-          <label>Your Name</label>
-          <input type="text" bind:value={displayName} placeholder="e.g. Mom, Dad" required />
+          <label for="displayName">Your Name</label>
+          <input id="displayName" type="text" bind:value={displayName} placeholder="e.g. Mom, Dad" required />
         </div>
       {/if}
       <div class="field">
-        <label>Email</label>
-        <input type="email" bind:value={email} placeholder="you@example.com" required />
+        <label for="email">Email</label>
+        <input id="email" type="email" bind:value={email} placeholder="you@example.com" required />
       </div>
       <div class="field">
-        <label>Password</label>
-        <input type="password" bind:value={password} placeholder="••••••••" minlength="6" required />
+        <label for="password">Password</label>
+        <input id="password" type="password" bind:value={password} placeholder="••••••••" minlength="6" required />
       </div>
 
       {#if error}<div class="error">{error}</div>{/if}

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { fetchFamilyReport, fetchFamilyMembers } from '$lib/database.js';
+  import { fetchFamilyReport } from '$lib/database.js';
+import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
   import { goto } from '$app/navigation';
 
   let family = $state(null);
@@ -108,10 +109,10 @@
     </div>
     {#if family}<p class="family-name">{family.name}</p>{/if}
     <div class="date-range">
-      <label>From</label>
-      <input type="date" bind:value={viewStart} />
-      <label>To</label>
-      <input type="date" bind:value={viewEnd} />
+      <label for="viewStart">From</label>
+      <input id="viewStart" type="date" bind:value={viewStart} />
+      <label for="viewEnd">To</label>
+      <input id="viewEnd" type="date" bind:value={viewEnd} />
       <button class="btn-primary" onclick={loadReport}>Update</button>
     </div>
   </header>
