@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_TASKS } from './tasks.js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -9,16 +8,16 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.starts
   : null;
 
 export async function getTasks() {
-  if (!supabase) return DEFAULT_TASKS;
+  if (!supabase) return [];
   try {
     const { data, error } = await supabase
       .from('tasks')
       .select('id, name, emoji, productive, color, sort_order')
       .order('sort_order', { ascending: true });
     if (error) throw error;
-    return data ?? DEFAULT_TASKS;
+    return data ?? [];
   } catch {
-    return DEFAULT_TASKS;
+    return [];
   }
 }
 
@@ -38,7 +37,7 @@ export async function getEntries(memberName, date) {
   }
 }
 
-export async function logEntry(entry) {
+export async function insertEntry(entry) {
   if (!supabase) return;
   const { error } = await supabase.from('time_entries').insert(entry);
   if (error) throw error;

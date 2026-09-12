@@ -312,7 +312,7 @@
 </div>
 
 {#if showQuickEntry}
-  <div class="modal-backdrop" onclick={() => showQuickEntry = false}>
+  <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showQuickEntry = false} onkeydown={(e) => e.key === 'Enter' && (showQuickEntry = false)}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h2 class="modal-title">➕ Log Time</h2>
       <div class="field">

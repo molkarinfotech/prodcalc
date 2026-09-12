@@ -137,7 +137,7 @@
 </div>
 
 {#if showCreateModal}
-  <div class="backdrop" onclick={() => showCreateModal = false}>
+  <div class="backdrop" role="button" tabindex="0" onclick={() => showCreateModal = false} onkeydown={(e) => e.key === 'Enter' && (showCreateModal = false)}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h3>✨ Create New Family</h3>
       <div class="field"><label>Family Name</label><input type="text" bind:value={familyName} placeholder="e.g. Smith Family" /></div>
@@ -151,7 +151,7 @@
 {/if}
 
 {#if showJoinModal}
-  <div class="backdrop" onclick={() => showJoinModal = false}>
+  <div class="backdrop" role="button" tabindex="0" onclick={() => showJoinModal = false} onkeydown={(e) => e.key === 'Enter' && (showJoinModal = false)}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h3>🔗 Join Family</h3>
       <div class="field"><label>Invite Code</label><input type="text" bind:value={inviteCode} placeholder="e.g. ABC123" /></div>
