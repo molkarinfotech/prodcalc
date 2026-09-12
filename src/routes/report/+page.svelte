@@ -1,12 +1,14 @@
 <script>
   import { onMount } from 'svelte';
-  import { fetchFamilyReport } from '$lib/database.js';
-import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
+  import { fetchFamilyReport, fetchFamilyStreak, fetchMemberStreak } from '$lib/database.js';
+  import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
   import { goto } from '$app/navigation';
 
   let family = $state(null);
   let members = $state([]);
   let entries = $state([]);
+  let streaks = $state({ current: 0, longest: 0, totalDays: 0 });
+  let memberStreaks = $state({});
   let isLoading = $state(true);
   let viewStart = $state('');
   let viewEnd = $state('');
@@ -77,11 +79,25 @@ import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
     return colors[Math.abs(hash) % colors.length];
   }
 
+  async function loadStreaks() {
+    try {
+      streaks = await fetchFamilyStreak(family.id);
+      const memberData = {};
+      for (const m of members) {
+        memberData[m.id] = await fetchMemberStreak(m.id);
+      }
+      memberStreaks = memberData;
+    } catch (err) {
+      console.error('Failed to load streaks:', err);
+    }
+  }
+
   async function loadReport() {
     if (!viewStart || !viewEnd) return;
     isLoading = true;
     try {
       entries = await fetchFamilyReport(family.id, viewStart, viewEnd);
+      await loadStreaks();
     } catch (err) {
       console.error('Failed to load report:', err);
     }

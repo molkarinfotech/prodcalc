@@ -3,6 +3,7 @@
   import { supabase, insertEntry, deleteEntry } from '$lib/supabase.js';
   import { fetchTasks, fetchEntries } from '$lib/database.js';
   import { goto } from '$app/navigation';
+  import StreakWidget from '$lib/components/StreakWidget.svelte';
 
   let tasks = $state([]);
   let entries = $state([]);
@@ -203,6 +204,8 @@
     {:else}
       <div class="offline-badge">📱 Offline mode</div>
     {/if}
+
+    <StreakWidget />
 
     <div class="week-nav">
       <button class="nav-btn" onclick={prevWeek} title="Previous week">◀</button>
