@@ -11,7 +11,19 @@ import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
   let viewStart = $state('');
   let viewEnd = $state('');
 
-  // Derived: group entries by date
+  // Derived: overall summary for the entire period
+  const overallStats = $derived(() => {
+    let productive = 0;
+    let leisure = 0;
+    const byMember = {};
+    for (const e of entries) {
+      const mins = e.minutes || 0;
+      if (e.productive) productive += mins;
+      else leisure += mins;
+      byMember[e.member_id] = (byMember[e.member_id] || 0) + mins;
+    }
+    return { productive, leisure, total: productive + leisure, byMember };
+  });
   const byDate = $derived(() => {
     const map = {};
     for (const e of entries) {
@@ -122,6 +134,30 @@ import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
   {:else if entries.length === 0}
     <div class="empty">No time entries found for this period.</div>
   {:else}
+    {@const stats = overallStats()}
+    <div class="overall-summary">
+      <h2>Period Summary</h2>
+      <div class="summary-bars">
+        <div class="summary-row">
+          <span class="label">✅ Productive</span>
+          <div class="bar-bg">
+            <div class="bar-fill productive" style="width: {(stats.productive / stats.total * 100)}%"></div>
+          </div>
+          <span class="value">{formatMins(stats.productive)}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">⏸ Leisure</span>
+          <div class="bar-bg">
+            <div class="bar-fill leisure" style="width: {(stats.leisure / stats.total * 100)}%"></div>
+          </div>
+          <span class="value">{formatMins(stats.leisure)}</span>
+        </div>
+      </div>
+      <div class="summary-percent">
+        <span class="percent">{stats.productive > 0 ? Math.round(stats.productive / stats.total * 100) : 0}% productive</span>
+      </div>
+    </div>
+
     <div class="report-content">
       {#each byDate() as [date, dateEntries]}
         {@const stats = dateStats(dateEntries)}
@@ -191,6 +227,19 @@ import { getFamilyMembers as fetchFamilyMembers } from '$lib/family.js';
   .btn-primary { padding: 8px 16px; border: none; border-radius: 10px; background: #7C3AED; color: white; font-family: inherit; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
 
   .report-content { display: flex; flex-direction: column; gap: 16px; }
+
+  .overall-summary { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; margin-bottom: 8px; }
+  .overall-summary h2 { font-size: 1rem; font-weight: 700; color: #374151; margin: 0 0 16px; }
+  .summary-bars { display: flex; flex-direction: column; gap: 12px; }
+  .summary-row { display: flex; align-items: center; gap: 12px; }
+  .summary-row .label { font-size: 0.85rem; font-weight: 600; color: #374151; min-width: 100px; }
+  .bar-bg { flex: 1; height: 20px; background: #f3f4f6; border-radius: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 10px; transition: width 0.3s; }
+  .bar-fill.productive { background: linear-gradient(90deg, #22C55E, #16A34A); }
+  .bar-fill.leisure { background: linear-gradient(90deg, #F59E0B, #D97706); }
+  .summary-row .value { font-size: 0.9rem; font-weight: 700; color: #374151; min-width: 60px; text-align: right; }
+  .summary-percent { text-align: center; margin-top: 12px; }
+  .percent { font-size: 1.5rem; font-weight: 800; color: #7C3AED; }
   .day-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; }
   .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .day-date { font-weight: 700; color: #374151; }
