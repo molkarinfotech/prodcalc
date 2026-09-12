@@ -40,7 +40,7 @@
     error = '';
     if (!familyName.trim()) { error = 'Please enter a family name'; return; }
     try {
-      const family = await createFamily(familyName, user.id);
+      const family = await createFamily(familyName, user.id, user.user_metadata?.display_name || 'Admin');
       showCreateModal = false;
       familyName = '';
       await loadFamilies();

@@ -47,14 +47,29 @@ export function onAuthStateChange(callback) {
 // FAMILIES
 // =============================================
 
-export async function createFamily(name, userId) {
-  const { data, error } = await supabase
+export async function createFamily(name, userId, displayName) {
+  // Create the family
+  const { data: family, error } = await supabase
     .from('families')
     .insert({ name, created_by: userId })
     .select()
     .single();
   if (error) throw error;
-  return data;
+
+  // Add the creator as an admin member
+  const { error: memberError } = await supabase
+    .from('family_members')
+    .insert({
+      family_id: family.id,
+      user_id: userId,
+      display_name: displayName || 'Admin',
+      emoji: '👑',
+      color: '#7C3AED',
+      role: 'admin',
+    });
+  if (memberError) throw memberError;
+
+  return family;
 }
 
 export async function getFamilyByInviteCode(code) {
